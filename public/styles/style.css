@@ -4,6 +4,14 @@
     margin:0;
 }
 
+table{
+    border-collapse: collapse;
+    height: 500px;
+    width: 500px;
+    left: 100px;
+    top: 100px;
+}
+
 .buttons{
     text-align: center;
     top: 100px;

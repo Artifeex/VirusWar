@@ -18,31 +18,33 @@ let field = [];
 let size = 10;
 let gameStarted = false;
 let winner = -1;
+
+let lastTurn = -1
 // 1. Подключился первый клиент ничего ему не отправляем
 // 2. Подключился второй клеинт - отправляем обоим клиентам инфу о том, что игра началась, можно генерировать поле. Посылаем какой-то init, в котором понимаем, что это первый ход
 // 3. Ожидаем 
 
 //Состояния клеток:
-// 0 - cвободная
-// 1 - занято крестиком
-// 2 - занято 0
+// -1 - cвободная
+// 0 - занято крестиком
+// 1 - занято 0
+// 2 - убитый нолик
 // 3 - убитый крестик
-// 4 - убитый нолик
 
 
 wss.on("connection", function connection(ws, req) {
-    clients.push(ws);
+    players.push(ws);
     // Инициализация игры
-    if(gameStarted == false && clients.length == 2)
+    if(gameStarted == false && players.length == 2)
     {
         // Создаем поле для игры
         console.log("Два клиента готовы играть");
         for(let i = 0; i<size;i++) 
         {
-            field[i] = new Array(size).fill(0);
+            field[i] = new Array(size).fill(-1);
         }
         moves[0] = 3;
-        moves[1] = 3;
+        moves[1] = 0;
         // Иниализируем игры
         gameStarted = true;
         //Надо запомнить дату матча
@@ -61,12 +63,20 @@ wss.on("connection", function connection(ws, req) {
             id: 1
         }))
     }
-    // Игра идет, ждем сообщения о ходах от пользователей
+
+
+
+
+    // Пришло сообщение от игрока(от игрока мы передаем только координаты хода)
     ws.on('message', function incoming(message) {
         // Определяю от какого пользователя пришел ход, чтобы понять, каким значение заполнить поле field.
         let data = JSON.parse(message);
         //Узнал от какого пользователя
-        let curId = data.id;
+        let curId
+        if(players[0] === ws)
+            curId = 0
+        else
+            curId = 1
 
         // Уменьшаем число шагов и обновляем число шагов аппоненту, если закончились шаги у врага
         moves[curId] -= 1;
@@ -76,8 +86,7 @@ wss.on("connection", function connection(ws, req) {
         //Точка, которую поставил пользователей. Она 100% правильная, так как проверки правильности выбора точек осуществляются на клиенте
         let point = data.point;
         // Новое состояние клетки
-        let value = data.value;
-        field[point.y][point.x] = value;
+        field[point.y][point.x] = data.value;
         //Проверяем игру на окончание
         if(IsGameEnded())
         {
@@ -89,7 +98,7 @@ wss.on("connection", function connection(ws, req) {
             //отправляем данные о ходе соперника
             players[1 - curId].send(JSON.stringify({
                 point: point,
-                value: value,
+                value: data.value,
                 gameContinue: true,
                 winner: winner,
                 moves: moves[1-curId]
@@ -102,8 +111,7 @@ wss.on("connection", function connection(ws, req) {
 
 })
 
-function IsGameEnded() 
-{
+function IsGameEnded() {
 
 }
 
