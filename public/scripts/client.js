@@ -25,15 +25,19 @@ let enemyMark;
 
 //открыли сокет
 socket.onopen = function() {
-    CreateField();
+    //document.getElementById("status").innerHTML = "Ожидание игрока..."
+    CreateField()
 }
 
 //Обработка сообщений с сервера
 socket.onmessage = function(message) {
     let dataFromServer = JSON.parse(message.data);
+    
     //Это первое сообщение от сервера, приходит, когда подключились 2 игрока
     if(!init) 
     {
+
+        
         init = dataFromServer.gameStarted;
         id = dataFromServer.id;
         turn = dataFromServer.turn;
@@ -162,6 +166,29 @@ function UpdateField(x, y) {
         elem.innerHTML = playerMark
     }
 
+}
+
+
+function ChangeStatus(status) {
+    let status = document.getElementById("status")
+    if(status == 'wait') {
+        status.appendChild(document.createElement('div').innerHTML = "Ожидание игрока")
+    }
+    else if(status == 'startGame') {
+        status.appendChild(document.createElement('div').innerHTML = "Вы играете :" + playerMark)
+        let hodiki = document.createElement('div').innerHTML = "Оставшееся число ходиков: " + moves
+        hodiki.setAttribute('id', "hodiki")
+        let htmlTurn = document.createElement('div')
+        htmlTurn.setAttribute('id', "turn")
+        htmlTurn.innerHTML = "Сейчас ходят: "
+        status.appendChild(htmlTurn)
+        status.appendChild(hodiki)
+        CreateField()
+    }
+    else if(status == "gameEnd") {
+
+    }
+  
 }
 
 
