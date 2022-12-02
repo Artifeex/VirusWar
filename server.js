@@ -4,6 +4,7 @@ const WebSocket = require("ws");
 const app = express();
 const bodyParser = require("body-parser");
 const { futimesSync } = require("fs");
+const { stringify } = require("querystring");
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -18,8 +19,9 @@ let field = [];
 let size = 10;
 let gameStarted = false;
 let winner = -1;
-
-let lastTurn = -1
+let curTurnId = -1;
+let curId = -1
+let firstTurn = true
 // 1. Подключился первый клиент ничего ему не отправляем
 // 2. Подключился второй клеинт - отправляем обоим клиентам инфу о том, что игра началась, можно генерировать поле. Посылаем какой-то init, в котором понимаем, что это первый ход
 // 3. Ожидаем 
@@ -48,7 +50,7 @@ wss.on("connection", function connection(ws, req) {
         // Иниализируем игры
         gameStarted = true;
         //Надо запомнить дату матча
-
+        curTurnId = 0
 
         // Отправляем информацию первому пользователю
         players[0].send(JSON.stringify({
@@ -72,47 +74,139 @@ wss.on("connection", function connection(ws, req) {
         // Определяю от какого пользователя пришел ход, чтобы понять, каким значение заполнить поле field.
         let data = JSON.parse(message);
         //Узнал от какого пользователя
-        let curId
+        
         if(players[0] === ws)
             curId = 0
-        else
+        else {
             curId = 1
+            firstTurn = false
+        }
+            
 
         // Уменьшаем число шагов и обновляем число шагов аппоненту, если закончились шаги у врага
         moves[curId] -= 1;
-        if(moves[curId] == 0)
+        if(moves[curId] == 0) {
             moves[1-curId] = 3;
+            curTurnId = 1 - curId
+        }
+        
         
         //Точка, которую поставил пользователей. Она 100% правильная, так как проверки правильности выбора точек осуществляются на клиенте
         let point = data.point;
         // Новое состояние клетки
         field[point.y][point.x] = data.value;
-        //Проверяем игру на окончание
-        if(IsGameEnded())
-        {
-            //Завершаем игру
-            
-        }
-        else
-        {
-            //отправляем данные о ходе соперника
-            players[1 - curId].send(JSON.stringify({
-                point: point,
-                value: data.value,
-                gameContinue: true,
-                winner: winner,
-                moves: moves[1-curId]
-            }));
-        }
-        
-       
-    })
+        //отправла сообщения о ходе врага
+        players[1 - curId].send(JSON.stringify({
+            point: point,
+            value: data.value,
+            gameContinue: true,
+            isSkipTurn:false,
+            winner: winner,
+            moves: moves[1-curId],
+            curTurnId: curTurnId
+        }));
 
+        //Проверяем игру на окончание
+        if(IsGameEnded() && !firstTurn) {
+           players[0].send(JSON.stringify(
+            {
+                gameContinue:false,
+                winner: winner
+            }
+           ))
+           players[1].send(JSON.stringify(
+            {
+                gameContinue:false,
+                winner: winner
+            }
+           ))
+        }
+        if(IsSkipTurn()) {
+            curTurnId = 1 - curTurnId
+            moves[curTurnId] = 3;
+            if(moves[1-curTurnId] != 0)
+                players[1-curTurnId].send(JSON.stringify( 
+                    {
+                        isSkipTurn:true,
+                        point: point,
+                        value: data.value,
+                        gameContinue: true
+                    }
+            ))
+            players[curTurnId].send(JSON.stringify(
+                {
+                    isSkipTurn: false,
+                    point: [-1, -1],
+                    moves: moves[curTurnId],
+                    curTurnId: curTurnId,
+                    gameContinue: true
+                }
+            ))
+        }
+              
+    })
 
 })
 
-function IsGameEnded() {
 
+function GetAreas(x, y) {
+    result = []
+    for(let x_i= x-1; x_i < x + 2; x_i++) {
+        if(x_i < 0 || x_i > 9)
+            continue
+        for(let y_i = y-1; y_i < y + 2;y_i++) {
+            if(y_i < 0 || y_i > 9 || (x_i == x && y_i == y))
+                continue
+            result.push([x_i , y_i])
+        }
+    }
+    return result
+}
+
+
+function IsSkipTurn() {
+    let potentialPoints = []
+    for(let i = 0; i < size; i++) {
+        for(let j = 0; j < size; j++) {
+            if(field[i][j] == curTurnId || field[i][j] == curTurnId + 2)
+                potentialPoints.push([i, j])
+        }
+    }
+    if(potentialPoints.length === 0)
+        return false
+    for(point of potentialPoints) {
+        let areas = GetAreas(point[1], point[0])
+        for(let areasPoint of areas) { 
+            // Проверили, что в доступности есть свободная клетка или клетка врага, которую можно съесть
+            if(field[areasPoint[1]][areasPoint[0]] == -1 || field[areasPoint[1]][areasPoint[0]] == 1 - curTurnId) 
+                return false
+        }
+    }
+    return true
+} 
+
+function IsGameEnded() {
+    let countAlifeX = 0
+    let countAlifeO = 0
+    for(let i = 0; i < size; i++) {
+        for(let j = 0; j < size; j++) {
+            if(field[i][j] == 0)
+                countAlifeX++
+            else if(field[i][j] == 1)
+                countAlifeO++
+        }
+    }
+    if(countAlifeO == 0) {
+        winner = 1
+        return true
+    }
+    else if(countAlifeX == 0) {
+        winner = 0
+        return true
+    }
+    else {
+        return false
+    }
 }
 
 server.listen(8080, function listen(err) {

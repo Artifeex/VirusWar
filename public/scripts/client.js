@@ -59,22 +59,34 @@ socket.onmessage = function(message) {
         }
         //Смотрим на то, чей ход. Если мой, то вывожу, что мой ход  и число шагов в том месте, где было ожидание игрока
     }
-
-    //if(!dataFromServer.gameContinue)
-        //Завершить игру
+    else if(!dataFromServer.gameContinue) {
+        let div = document.createElement("div")
+        div.innerHTML = "Побидителем стал: " + dataFromServer.winner
+        document.getElementById("body_html").appendChild(div)
         //window.location.href = "index.html"
+    }
     else 
     {
-        
-        field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
-        //Обновить картинку для этой точки
-        document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
-        //Обновить число шагов
+        if(dataFromServer.isSkipTurn) {
+            alert("Нет возможных ходов! Переход к ходу соперника")
+            field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
+            document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
+        }
+        //У соперника произошел скип
+        if(dataFromServer.point[0] == -1) {
+            alert("У противника не было ходов, поэтому ход перешел к вам!")
+
+
+        }
+        else {
+            field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
+            //Обновить картинку для этой точки
+            document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
+            //Обновить число шагов
+        }
         moves = dataFromServer.moves;
-
-
+        turn = dataFromServer.curTurnId;
     }
-    
 };
 
 function GetAreas(x, y) {
@@ -88,7 +100,6 @@ function GetAreas(x, y) {
             result.push([x_i , y_i])
         }
     }
-    console.log(result)
     return result
 }
 
@@ -99,9 +110,20 @@ function GetAreas(x, y) {
 // 3 - убитый крестик
 
 function IsCorrect(x, y) {
-    //Выбранная клетка является клеткой моего хода или убитым крестиком или убитым ноликом id + 2 - это твой убитый враг
+    //Проверяем клик по своей клетке и по клетке убитого врага
     if(field[y][x] == id || field[y][x] == id + 2)
         return false
+    if(id == 0) {
+        //проверяю убитый крестик
+        if(field[y][x] == id + 3)
+            return false
+    }
+    else { //нолик
+        //проверяю убитый нолик
+        if(field[y][x] == id + 1)
+            return false
+    }
+    //Выбранная клетка является клеткой моего хода или убитым крестиком или убитым ноликом id + 2 - это твой убитый враг
     areas = GetAreas(x, y)
     for(point of areas) {
         // Если в окрестности точки оказалась моя точка или убитого мною врага(id + 2), то все хорошо
@@ -148,7 +170,7 @@ function Click() {
     x = Number(point[0])
     y = Number(point[1])
     
-    if(moves > 0) {
+    if(moves > 0 && turn == id) {
         if(firstTurn) {
             if(CorrectFirstTurn(x, y)) {
                 UpdateField(x, y)
