@@ -3,8 +3,6 @@ const http = require("http");
 const WebSocket = require("ws");
 const app = express();
 const bodyParser = require("body-parser");
-const { futimesSync } = require("fs");
-const { stringify } = require("querystring");
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -130,7 +128,9 @@ wss.on("connection", function connection(ws, req) {
                         isSkipTurn:true,
                         point: point,
                         value: data.value,
-                        gameContinue: true
+                        gameContinue: true,
+                        moves: 0,
+                        curTurnId: curTurnId
                     }
             ))
             players[curTurnId].send(JSON.stringify(
@@ -197,11 +197,11 @@ function IsGameEnded() {
         }
     }
     if(countAlifeO == 0) {
-        winner = 1
+        winner = 0
         return true
     }
     else if(countAlifeX == 0) {
-        winner = 0
+        winner = 1
         return true
     }
     else {

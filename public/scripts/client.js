@@ -1,4 +1,3 @@
-
 var socket = new WebSocket("ws://localhost:8080/ws");
 let init = false;
 let firstTurn = true;
@@ -13,6 +12,8 @@ let thead
 let tbody
 let playerMark;
 let enemyMark;
+let winner;
+let dataFromServer 
 //Состояния клеток:
 // -1 - cвободная
 // 0 - занято крестиком
@@ -20,39 +21,40 @@ let enemyMark;
 // 2 - убитый нолик
 // 3 - убитый крестик
 
-
+// 3 - id = мой убитый
 
 
 //открыли сокет
 socket.onopen = function() {
     //document.getElementById("status").innerHTML = "Ожидание игрока..."
-    CreateField()
+    ChangeStatus("wait")
 }
 
 //Обработка сообщений с сервера
 socket.onmessage = function(message) {
-    let dataFromServer = JSON.parse(message.data);
+    dataFromServer = JSON.parse(message.data);
     
     //Это первое сообщение от сервера, приходит, когда подключились 2 игрока
     if(!init) 
     {
-
-        
         init = dataFromServer.gameStarted;
         id = dataFromServer.id;
         turn = dataFromServer.turn;
-        //Убираем надпись "Ожидание игрока"
         if(id == 0)
         {
-            playerMark = "x"
-            enemyMark = "o"
-        }
-            
+            playerMark = "X"
+            enemyMark = "O"
+        }   
         else
         {
-            playerMark = "o"
-            enemyMark = "x"
+            playerMark = "O"
+            enemyMark = "X"
         }
+        
+        ChangeStatus("startGame")
+
+        //Убираем надпись "Ожидание игрока"
+       
            
         //Делаем поле, которое создали при подключении к серверу - видимым
         
@@ -64,32 +66,43 @@ socket.onmessage = function(message) {
         //Смотрим на то, чей ход. Если мой, то вывожу, что мой ход  и число шагов в том месте, где было ожидание игрока
     }
     else if(!dataFromServer.gameContinue) {
-        let div = document.createElement("div")
-        div.innerHTML = "Побидителем стал: " + dataFromServer.winner
-        document.getElementById("body_html").appendChild(div)
+        if(dataFromServer.winner == 0) {
+            winner = "X"
+        }
+        else {
+            winner = "O"
+        }
+        ChangeStatus("gameEnd")
         //window.location.href = "index.html"
     }
     else 
     {
         if(dataFromServer.isSkipTurn) {
             alert("Нет возможных ходов! Переход к ходу соперника")
-            field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
-            document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
+            UpdateField(dataFromServer.point.x, dataFromServer.point.y, true)
+            //field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
+            //document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
         }
         //У соперника произошел скип
         if(dataFromServer.point[0] == -1) {
             alert("У противника не было ходов, поэтому ход перешел к вам!")
-
-
         }
         else {
-            field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
+            UpdateField(dataFromServer.point.x, dataFromServer.point.y, true)
+            //field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
             //Обновить картинку для этой точки
-            document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
+            //document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
             //Обновить число шагов
         }
         moves = dataFromServer.moves;
+        document.getElementById('hodiki').innerHTML = "Осталось ходиков: " + moves
         turn = dataFromServer.curTurnId;
+        if(turn == 0) 
+            document.getElementById('turn').innerHTML = "Сейчас ходят: X"
+        else
+            document.getElementById('turn').innerHTML = "Сейчас ходят: O"
+        
+        
     }
 };
 
@@ -151,42 +164,84 @@ function CorrectFirstTurn(x, y) {
 }
 
 
-function UpdateField(x, y) {
-    moves -= 1
+function UpdateField(x, y, isEnemyTurn) {
     let elem = document.getElementById(x.toString() + y.toString())
+    if(!isEnemyTurn) {
+        moves -= 1
+    document.getElementById('hodiki').innerHTML = "Осталось ходиков: " + moves
+    if(moves == 0) {
+        if(id == 0) {
+            document.getElementById('turn').innerHTML = "Сейчас ходят: O"
+        }
+        else {
+            document.getElementById('turn').innerHTML = "Сейчас ходят: X"
+        }
+    }
+        
     // Значит свободная клетка
     if(field[y][x] == -1) {
         field[y][x] = id
         elem.innerHTML = playerMark
+        document.getElementById(x.toString() + y.toString()).style.backgroundColor = "#7CFC00"
     }
+
     //Клетка врага
     else {
         field[y][x] = id + 2
         //поменять frontend
-        elem.innerHTML = playerMark
+        elem.innerHTML = enemyMark
+        document.getElementById(x.toString() + y.toString()).style.backgroundColor = "#8B0000"
+    }
     }
 
+
+    //Обработка хода врага
+    else {
+        field[y][x] = dataFromServer.value
+        //ставим клетку врага
+        if(dataFromServer.value == 1 - id) {
+            
+            elem.innerHTML = enemyMark
+            elem.style.backgroundColor = "#7CFC00"
+        }
+        //Съели нашу клетку
+        else {
+            //поменять frontend
+            elem.style.backgroundColor = "#8B0000"
+        }
+    }
 }
 
 
-function ChangeStatus(status) {
-    let status = document.getElementById("status")
-    if(status == 'wait') {
-        status.appendChild(document.createElement('div').innerHTML = "Ожидание игрока")
+function ChangeStatus(gameStatus) {
+
+    let status = document.getElementById('status123')
+    if(gameStatus == 'wait') {
+        let message = document.createElement('div')
+        message.innerHTML = "Ожидание игрока"
+        status.appendChild(message)
     }
-    else if(status == 'startGame') {
-        status.appendChild(document.createElement('div').innerHTML = "Вы играете :" + playerMark)
-        let hodiki = document.createElement('div').innerHTML = "Оставшееся число ходиков: " + moves
+    else if(gameStatus == 'startGame') {
+        status.innerHTML = ""
+        let message = document.createElement('div')
+        message.innerHTML = "Вы играете :" + playerMark
+        document.getElementById('status123').appendChild(message)
+        let hodiki = document.createElement('div')
+        hodiki.innerHTML = "Осталось ходиков: " + moves
         hodiki.setAttribute('id', "hodiki")
         let htmlTurn = document.createElement('div')
         htmlTurn.setAttribute('id', "turn")
-        htmlTurn.innerHTML = "Сейчас ходят: "
+        htmlTurn.innerHTML = "Сейчас ходят: " 
+        if(turn == 0)
+            htmlTurn.innerHTML = "Сейчас ходят: X"
         status.appendChild(htmlTurn)
         status.appendChild(hodiki)
         CreateField()
     }
-    else if(status == "gameEnd") {
-
+    else if(gameStatus == "gameEnd") {
+        let div = document.createElement("div")
+        div.innerHTML = "Побидителем стал: " + winner
+        document.getElementById("body_html").appendChild(div)
     }
   
 }
@@ -200,7 +255,7 @@ function Click() {
     if(moves > 0 && turn == id) {
         if(firstTurn) {
             if(CorrectFirstTurn(x, y)) {
-                UpdateField(x, y)
+                UpdateField(x, y, false)
                 socket.send(JSON.stringify( 
                     {
                         point: {x, y},
@@ -219,7 +274,7 @@ function Click() {
         else {
             if(IsCorrect(x, y)) {
 
-                UpdateField(x, y)
+                UpdateField(x, y, false)
                 socket.send(JSON.stringify( {
                     point: {x, y},
                     value: field[y][x]
