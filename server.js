@@ -11,7 +11,6 @@ app.use(bodyParser.json());
 var server = http.createServer(app);
 var wss = new WebSocket.Server({server});
 let db = require("./db");
-const { start } = require("repl");
 let players = [];
 let moves = [];
 let field = [];
@@ -124,6 +123,7 @@ wss.on("connection", function connection(ws, req) {
            ))
            players[0].close()
            players[1].close()
+           gameStarted = false
            players=[]
            let endTime = new Date()
            let result
