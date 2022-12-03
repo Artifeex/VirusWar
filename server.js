@@ -10,7 +10,8 @@ app.use(bodyParser.json());
 
 var server = http.createServer(app);
 var wss = new WebSocket.Server({server});
-
+let db = require("./db");
+const { start } = require("repl");
 let players = [];
 let moves = [];
 let field = [];
@@ -20,6 +21,7 @@ let winner = -1;
 let curTurnId = -1;
 let curId = -1
 let firstTurn = true
+let startTime;
 // 1. Подключился первый клиент ничего ему не отправляем
 // 2. Подключился второй клеинт - отправляем обоим клиентам инфу о том, что игра началась, можно генерировать поле. Посылаем какой-то init, в котором понимаем, что это первый ход
 // 3. Ожидаем 
@@ -37,6 +39,7 @@ wss.on("connection", function connection(ws, req) {
     // Инициализация игры
     if(gameStarted == false && players.length == 2)
     {
+
         // Создаем поле для игры
         console.log("Два клиента готовы играть");
         for(let i = 0; i<size;i++) 
@@ -62,6 +65,7 @@ wss.on("connection", function connection(ws, req) {
             turn: 0,
             id: 1
         }))
+        startTime = new Date()
     }
 
 
@@ -118,7 +122,28 @@ wss.on("connection", function connection(ws, req) {
                 winner: winner
             }
            ))
+           players[0].close()
+           players[1].close()
+           players=[]
+           let endTime = new Date()
+           let result
+           let duration = Math.floor((endTime- startTime) / 60000)
+           if(winner == 0) {
+                result = "Победа крестиков"
+           }
+           else {
+                result = "Победа ноликов"
+           }
+
+           db.query("INSERT INTO games (date, duration, result) VALUES (?, ?, ?);", 
+           [startTime, duration, result], function (error) {
+            if (error) {
+                console.log(error);
+                return;
+                }
+            })
         }
+
         if(IsSkipTurn()) {
             curTurnId = 1 - curTurnId
             moves[curTurnId] = 3;
@@ -218,6 +243,17 @@ server.listen(8080, function listen(err) {
     else
         console.log("Server is listenning on port: " + 8080);
 });
+
+
+app.get("/history", function(req, res) {
+    db.query("select * from games;", function(err, rows) {
+        if(err) {
+            console.log(err)
+            return
+        }
+        res.end(JSON.stringify(rows))
+    })
+})
 
 app.get("/", function(req, res) {
     res.redirect(301, "index.html");
