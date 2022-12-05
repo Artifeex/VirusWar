@@ -1,14 +1,16 @@
+//подключаем модуль express
 const express = require("express");
+//подключаем модуль http
 const http = require("http");
+
 const WebSocket = require("ws");
+//создаем приложение, с помощью которого получим доступ к основным фишкам
 const app = express();
-const bodyParser = require("body-parser");
-
 app.use(express.static("public"));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
+//создаем сервер, в качестве параметра - функция, которая принимает два параметра, первый - хранит информацию о запросе, вторая для ответа. В данном случае ее заменяет приложение app
+//которая внутри хранит обработчики для событий написанный за нас expressом.
 var server = http.createServer(app);
+//мы создали обычный http сервер и привязали к нему веб-сокет сервер.
 var wss = new WebSocket.Server({server});
 let db = require("./db");
 let players = [];
@@ -32,7 +34,7 @@ let startTime;
 // 2 - убитый нолик
 // 3 - убитый крестик
 
-
+// объявили событие connection и функцию обработчик, которая будет вызываться, когда произойдет событие connection
 wss.on("connection", function connection(ws, req) {
     players.push(ws);
     // Инициализация игры
@@ -51,7 +53,7 @@ wss.on("connection", function connection(ws, req) {
         gameStarted = true;
         //Надо запомнить дату матча
         curTurnId = 0
-
+        //JSON.stringify() - преобразует переданный объект в строку JSON
         // Отправляем информацию первому пользователю
         players[0].send(JSON.stringify({
             gameStarted: true,
@@ -102,7 +104,6 @@ wss.on("connection", function connection(ws, req) {
             value: data.value,
             gameContinue: true,
             isSkipTurn:false,
-            winner: winner,
             moves: moves[1-curId],
             curTurnId: curTurnId
         }));
@@ -234,6 +235,7 @@ function IsGameEnded() {
     }
 }
 
+//первый параметр - порт
 server.listen(8080, function listen(err) {
     if(err)
     {
@@ -244,7 +246,7 @@ server.listen(8080, function listen(err) {
         console.log("Server is listenning on port: " + 8080);
 });
 
-
+//функия, обрабатывающая GET запросы протокола HTTP. Первым параметром - маршрут, а вторым обработчик
 app.get("/history", function(req, res) {
     db.query("select * from games;", function(err, rows) {
         if(err) {
@@ -260,5 +262,5 @@ app.get("/", function(req, res) {
 })
 
 
-
+//запусук сервера с портом 3000
 app.listen(3000);

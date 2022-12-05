@@ -8,6 +8,7 @@ let date_format = {
 };
 
 function init() {
+    //используется для ajax запросов
     var oReq = new XMLHttpRequest();
 
     //Настроили запрос

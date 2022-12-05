@@ -301,6 +301,7 @@ function CreateField() {
     let td
     table.appendChild(thead)
     table.appendChild(tbody)
+    table.setAttribute('id', 'area')
     document.getElementById('body_html').appendChild(table)
     for(let i = 0;i < size;i++) {
         row = document.createElement("tr")

@@ -4,12 +4,16 @@
     margin:0;
 }
 
-table{
+#area{
     border-collapse: collapse;
     height: 500px;
     width: 500px;
-    left: 100px;
-    top: 100px;
+    padding-top: 100px;
+    padding-left: 250px;
+}
+
+.stat{
+    text-align: center;
 }
 
 .buttons{
@@ -18,19 +22,6 @@ table{
     left: 50%;
 }
 
-
-.content {
-    display: flex;
-    margin: 150px 50px 50px 50px;
-    font-family: sans-serif;
-}
-
-#area {
-    width: 520px;
-    border: 1px solid #000;
-    margin: 0 auto;
-    font-size: 0;
-}
 
 .cell {
     width: 50px;
@@ -46,6 +37,6 @@ table{
 }
 
 .cell:hover {
-    background-color: #F1F1F1;
+    background-color: #ada9a9;
 }
 
