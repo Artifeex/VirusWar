@@ -23,7 +23,6 @@ let dataFromServer
 
 // 3 - id = мой убитый
 
-
 //открыли сокет
 socket.onopen = function() {
     //document.getElementById("status").innerHTML = "Ожидание игрока..."
@@ -53,17 +52,11 @@ socket.onmessage = function(message) {
         
         ChangeStatus("startGame")
 
-        //Убираем надпись "Ожидание игрока"
-       
-           
-        //Делаем поле, которое создали при подключении к серверу - видимым
-        
         // Производим инициализацию поля
         for(let i = 0; i<size;i++) 
         {
             field[i] = new Array(size).fill(-1);
         }
-        //Смотрим на то, чей ход. Если мой, то вывожу, что мой ход  и число шагов в том месте, где было ожидание игрока
     }
     else if(!dataFromServer.gameContinue) {
         if(dataFromServer.winner == 0) {
@@ -80,8 +73,6 @@ socket.onmessage = function(message) {
         if(dataFromServer.isSkipTurn) {
             alert("Нет возможных ходов! Переход к ходу соперника")
             UpdateField(dataFromServer.point.x, dataFromServer.point.y, true)
-            //field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
-            //document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
         }
         //У соперника произошел скип
         if(dataFromServer.point[0] == -1) {
@@ -89,10 +80,6 @@ socket.onmessage = function(message) {
         }
         else {
             UpdateField(dataFromServer.point.x, dataFromServer.point.y, true)
-            //field[dataFromServer.point.y][dataFromServer.point.x] = dataFromServer.value;
-            //Обновить картинку для этой точки
-            //document.getElementById(dataFromServer.point.x.toString() + dataFromServer.point.y.toString()).innerHTML = enemyMark
-            //Обновить число шагов
         }
         moves = dataFromServer.moves;
         document.getElementById('hodiki').innerHTML = "Осталось ходиков: " + moves
@@ -177,7 +164,6 @@ function UpdateField(x, y, isEnemyTurn) {
             document.getElementById('turn').innerHTML = "Сейчас ходят: X"
         }
     }
-        
     // Значит свободная клетка
     if(field[y][x] == -1) {
         field[y][x] = id
@@ -188,13 +174,11 @@ function UpdateField(x, y, isEnemyTurn) {
     //Клетка врага
     else {
         field[y][x] = id + 2
-        //поменять frontend
+        //поменять front
         elem.innerHTML = enemyMark
         document.getElementById(x.toString() + y.toString()).style.backgroundColor = "#8B0000"
     }
     }
-
-
     //Обработка хода врага
     else {
         field[y][x] = dataFromServer.value
@@ -291,7 +275,6 @@ function Click() {
     }
 }
 
-// Создание поля
 function CreateField() {
     doby = document.getElementById('body_html')
     table = document.createElement('table')

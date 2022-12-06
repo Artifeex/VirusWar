@@ -1,10 +1,7 @@
-//подключаем модуль express
 const express = require("express");
-//подключаем модуль http
 const http = require("http");
 
 const WebSocket = require("ws");
-//создаем приложение, с помощью которого получим доступ к основным фишкам
 const app = express();
 app.use(express.static("public"));
 //создаем сервер, в качестве параметра - функция, которая принимает два параметра, первый - хранит информацию о запросе, вторая для ответа. В данном случае ее заменяет приложение app
@@ -23,9 +20,6 @@ let curTurnId = -1;
 let curId = -1
 let firstTurn = true
 let startTime;
-// 1. Подключился первый клиент ничего ему не отправляем
-// 2. Подключился второй клеинт - отправляем обоим клиентам инфу о том, что игра началась, можно генерировать поле. Посылаем какой-то init, в котором понимаем, что это первый ход
-// 3. Ожидаем 
 
 //Состояния клеток:
 // -1 - cвободная
@@ -40,8 +34,6 @@ wss.on("connection", function connection(ws, req) {
     // Инициализация игры
     if(gameStarted == false && players.length == 2)
     {
-
-        // Создаем поле для игры
         console.log("Два клиента готовы играть");
         for(let i = 0; i<size;i++) 
         {
@@ -49,12 +41,10 @@ wss.on("connection", function connection(ws, req) {
         }
         moves[0] = 3;
         moves[1] = 0;
-        // Иниализируем игры
         gameStarted = true;
         //Надо запомнить дату матча
         curTurnId = 0
         //JSON.stringify() - преобразует переданный объект в строку JSON
-        // Отправляем информацию первому пользователю
         players[0].send(JSON.stringify({
             gameStarted: true,
             turn: 0,
@@ -68,10 +58,6 @@ wss.on("connection", function connection(ws, req) {
         }))
         startTime = new Date()
     }
-
-
-
-
     // Пришло сообщение от игрока(от игрока мы передаем только координаты хода)
     ws.on('message', function incoming(message) {
         // Определяю от какого пользователя пришел ход, чтобы понять, каким значение заполнить поле field.
@@ -84,16 +70,12 @@ wss.on("connection", function connection(ws, req) {
             curId = 1
             firstTurn = false
         }
-            
-
         // Уменьшаем число шагов и обновляем число шагов аппоненту, если закончились шаги у врага
         moves[curId] -= 1;
         if(moves[curId] == 0) {
             moves[1-curId] = 3;
             curTurnId = 1 - curId
         }
-        
-        
         //Точка, которую поставил пользователей. Она 100% правильная, так как проверки правильности выбора точек осуществляются на клиенте
         let point = data.point;
         // Новое состояние клетки
@@ -235,7 +217,6 @@ function IsGameEnded() {
     }
 }
 
-//первый параметр - порт
 server.listen(8080, function listen(err) {
     if(err)
     {
@@ -261,6 +242,4 @@ app.get("/", function(req, res) {
     res.redirect(301, "index.html");
 })
 
-
-//запусук сервера с портом 3000
 app.listen(3000);
